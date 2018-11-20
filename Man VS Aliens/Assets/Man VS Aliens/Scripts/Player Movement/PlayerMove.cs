@@ -8,6 +8,9 @@ public class PlayerMove : MonoBehaviour {
     [SerializeField] private string verticalInputName;
     [SerializeField] private float movementSpeed;
 
+    [SerializeField] private float slopeForce;
+    [SerializeField] private float slopeForceRayLength;
+
     private CharacterController charController;
 
     [SerializeField] private AnimationCurve jumpFallOff;
@@ -28,15 +31,36 @@ public class PlayerMove : MonoBehaviour {
 
     private void PlayerMovement()
     {
-        float verInput = Input.GetAxis(verticalInputName) * movementSpeed;
-        float horizInput = Input.GetAxis(horizontalInputName) * movementSpeed;
+        float verInput = Input.GetAxis(verticalInputName);
+        float horizInput = Input.GetAxis(horizontalInputName);
 
         Vector3 forwardMovement = transform.forward * verInput;
         Vector3 rightMovement = transform.right * horizInput;
 
-        charController.SimpleMove(forwardMovement + rightMovement);
+        charController.SimpleMove(Vector3.ClampMagnitude(forwardMovement + rightMovement, 1.0f) * movementSpeed);
+
+        if ((verInput != 0 || horizInput != 0) && OnSlope()) charController.Move(Vector3.down * charController.height / 2 * slopeForce * Time.deltaTime);
+       
+
         JumpInput();
 
+    }
+
+    private bool OnSlope()
+    {
+        if (isJumping) return false;
+
+        RaycastHit hit;
+
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, charController.height/2 * slopeForceRayLength))
+        {
+            if(hit.normal != Vector3.up)
+            {
+                return true;
+            }
+           
+        }
+        return false;
     }
 
     private void JumpInput()
